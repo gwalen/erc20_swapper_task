@@ -1,3 +1,10 @@
+
+test :
+
+forge test --fork-url https://mainnet.infura.io/v3/5e51ff14ecd24a7faf37b5311c4bd61e -vv
+
+
+-----
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
