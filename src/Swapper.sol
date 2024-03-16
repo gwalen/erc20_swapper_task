@@ -14,11 +14,8 @@ import { console2 } from "forge-std/Test.sol";
 
 //TODO: UUPS proxy, change Ownable to OwnableUpgradable
 contract Swapper is ERC20Swapper, UUPSUpgradeable, OwnableUpgradeable {
-    // WETH address can be different for each network
-    address public WETH; //0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14; // Sepolia
+    address public WETH;
 
-    // TODO: check address on Sepolia
-    // ISwapRouter constant uniV3Router = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);  // main-net address
     ISwapRouter public uniV3Router;
 
     // Disable initializing on implementation contract
@@ -46,9 +43,8 @@ contract Swapper is ERC20Swapper, UUPSUpgradeable, OwnableUpgradeable {
         }
         console2.log("token %s, minAmount: %s", token, minAmount);
         console2.log("msg.value: ", msg.value);
-        // wrap Eth to Weth, now contract was msg.value amount of WETH tokens
         console2.log("Eth this: ", address(this).balance);
-        console2.log("WETH address: ", WETH);
+        // wrap Eth to Weth, now contract was msg.value amount of WETH tokens
         IWETH9(WETH).deposit{value: msg.value}();
         // IWETH9(WETH).transfer(msg.sender, msg.value);
         console2.log("Eth this:2 ", address(this).balance);
@@ -56,7 +52,6 @@ contract Swapper is ERC20Swapper, UUPSUpgradeable, OwnableUpgradeable {
         uint tokenBalanceBefore = IERC20(token).balanceOf(msg.sender);
         swapWithDex(token, msg.sender, msg.value);
         uint tokenBalanceDiff = IERC20(token).balanceOf(msg.sender) - tokenBalanceBefore;
-
 
         console2.log("tokenBalanceDiff: ", tokenBalanceDiff);
 
@@ -67,23 +62,20 @@ contract Swapper is ERC20Swapper, UUPSUpgradeable, OwnableUpgradeable {
         return tokenBalanceDiff;
     }
 
-    // TODO: can I mock internal functions in Foundry ?
     /// @dev swap with external dex in this case with uniswapV3 
     function swapWithDex(
         address tokenOut,
         address recipient,
         uint amountIn
-    ) internal returns (uint) {
-        // IERC20(WETH).transferFrom(msg.sender, address(this), amountIn); // done in swapEtherToToken
+    ) internal {
+        // approve router to use our weth in the swap
         IERC20(WETH).approve(address(uniV3Router), amountIn);
-
-        console2.log("just before swap");
 
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
             .ExactInputSingleParams({
                 tokenIn: WETH,
                 tokenOut: tokenOut,
-                fee: 3000,  // 0.3% - standard uniswap fee - double check if this is the case for out pools
+                fee: 3000,  // 0.3% - standard uniswap fee
                 recipient: recipient,
                 deadline: block.timestamp,
                 amountIn: amountIn,
@@ -93,9 +85,10 @@ contract Swapper is ERC20Swapper, UUPSUpgradeable, OwnableUpgradeable {
 
         uint amountOut = uniV3Router.exactInputSingle(params);
         console2.log("Dex result: amountOut: ", amountOut);
-        return amountOut;
     }
 
     // TODO: add rescue function to retrieve any eth or ERC tokens send to contract accidentally (only admin can do it)
     // TODO: add comments in the Solidity style
+    // TODO: deploy on Sepolia testnet
+    // TODO: remove console2 and unused imports
 }

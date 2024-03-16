@@ -39,8 +39,13 @@ contract SwapperTest is Test, SwapperDeployer {
         console2.log("swapper address: ", address(swapperProxy));
         uint256 amountOutMin = 1_000 * USDC_DECIMALS_MUL;
 
+        uint256 balance_before = IERC20(USDC_MAINNET).balanceOf(ALICE);
         uint256 amountOut = swapperProxy.swapEtherToToken{value: 1 ether}(USDC_MAINNET, amountOutMin);
-        // console2.log("amount out:", amountOut);
+        uint256 balance_diff = IERC20(USDC_MAINNET).balanceOf(ALICE) - balance_before;
+
+
+        assertEq(balance_diff, amountOut);
+        assertGe(amountOut, amountOutMin);
 
         _vm.stopPrank();
     }

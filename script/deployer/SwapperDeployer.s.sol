@@ -2,14 +2,15 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-
+import "forge-std/Script.sol";
 import {Swapper} from "../../src/Swapper.sol";
 
 /**
  * @notice Swapper deployer script contract. 
  *         It has has separate deployer for proxy and implementation so that we can use it for proxy upgrades in future.  
  */
-contract SwapperDeployer {
+// contract SwapperDeployer is Script {
+contract SwapperDeployer  {
     Swapper public swapperImpl;
     Swapper public swapperProxy; 
 
