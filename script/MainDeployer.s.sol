@@ -9,15 +9,16 @@ import "../src/Swapper.sol";
 
 contract MainDeployer is Script, Test, SwapperDeployer, TimelockDeployer {
 
-    // SwapperDeployer swapperDeployer;
     address owner;
+    address keeper;
     address uniV3Router;
     address wEth;
 
     function setUp() internal {
         owner = vm.envAddress("OWNER_ADDRESS");
-        uniV3Router = vm.envAddress("SEPOLIA_UNI_V3_ROUTER");
-        wEth = vm.envAddress("SEPOLIA_WETH");
+        keeper = vm.envAddress("KEEPER_ADDRESS");
+        uniV3Router = vm.envAddress("UNI_V3_ROUTER");
+        wEth = vm.envAddress("WETH_ADDRESS");
     }
 
     function run() external  {
@@ -39,7 +40,7 @@ contract MainDeployer is Script, Test, SwapperDeployer, TimelockDeployer {
     function verify() internal {
         Swapper swapper = Swapper(swapperProxy);
         assertEq(swapper.owner(), owner, "wrong owner");
-        assertEq(swapper.keeper(), owner, "wrong keeper");
+        assertEq(swapper.keeper(), keeper, "wrong keeper");
         assertEq(address(swapper.uniV3Router()), uniV3Router, "wrong uniV3Router");
         assertEq(swapper.WETH(), wEth, "wrong WETH");
     }

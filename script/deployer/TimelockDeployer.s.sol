@@ -3,6 +3,10 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/governance/TimelockController.sol";
 
+/**
+ * @dev Timelock contract to make sure proxy in not upgraded without a public proposal
+ *      amd time to leave the contract if malicious changes are introduced 
+ */
 contract TimelockDeployer {
     uint256 constant TIMELOCK_MIN_DELAY = 172800; // 48h
     address timelockAdmin;

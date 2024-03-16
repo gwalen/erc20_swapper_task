@@ -5,8 +5,8 @@ import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Swapper} from "../../src/Swapper.sol";
 
 /**
- * @notice Swapper deployer script contract. 
- *         It has has separate deployer for proxy and implementation so that we can use it for proxy upgrades in future.  
+ * @dev Swapper deployer script contract. 
+ *      It has has separate deployer for proxy and implementation so that we can use it for proxy upgrades in future.  
  */
 contract SwapperDeployer  {
     Swapper public swapperImpl;

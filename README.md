@@ -1,96 +1,95 @@
+# Home assignment
 
-test :
+## How to test
 
-forge test --fork-url https://mainnet.infura.io/v3/5e51ff14ecd24a7faf37b5311c4bd61e -vv
+Test are written using forge. To run please execute this command with your rpc url 
+```
+forge test --fork-url <rpc url> -vv
 
-
------
-## Foundry
-
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
-
-Foundry consists of:
-
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+eg.:
+forge test --fork-url https://mainnet.infura.io/v3/<your infura id here> -vv
 ```
 
-### Test
+## How to deploy
 
-```shell
-$ forge test
+First you need to setup .env variables 
+```
+RPC_URL=
+UNI_V3_ROUTER=
+WETH_ADDRESS=
+ETHERSCAN_API_KEY=
+OWNER_ADDRESS=
+KEEPER_ADDRESS=
+DEPLOYER_PRIVATE_KEY=
 ```
 
-### Format
+To deploy run `deploy.sh` script. It will use Forge scripts to deploy Timelock and Swapper(with proxy) contracts and perform initialization.
 
-```shell
-$ forge fmt
+## Design discussion
+
+Here is a short description how each of evaluation points was met but this solution:
+
+1. Safety and trust minimization. Are user's assets kept safe during the exchange transaction? Is the exchange rate fair and correct? Does the contract have an owner?
+
+* Are user's assets kept safe during the exchange transaction?
+
+Assets are safe during the whole transaction (including exchange interaction with external exchange) thanks to check after the call to external swap that 
+ensures if correct amount of output tokens is returned (in `Swapper.sol`):
 ```
+uint tokenBalanceBefore = IERC20(token).balanceOf(msg.sender);
+swapWithDex(token, msg.sender, msg.value);
+uint tokenBalanceDiff = IERC20(token).balanceOf(msg.sender) - tokenBalanceBefore;
 
-### Gas Snapshots
-
-```shell
-$ forge snapshot
+if (tokenBalanceDiff < minAmount) {
+    revert AmountOutTooSmall();
+}
 ```
+If there is any error transaction reverts and user assets are untouched.
 
-### Anvil
+* Is the exchange rate fair and correct?
 
-```shell
-$ anvil
-```
+Parameter `minAmount` of `swapEtherToToken` function makes sure of that. This parameter is set by user and includes max slippage
+user can handle. If exchange would return smaller amount than expected the method will revert.
 
-### Deploy
+* Does the contract have an owner?
 
-run anvil avax : `anvil --fork-url https://mainnet.infura.io/v3/5e51ff14ecd24a7faf37b5311c4bd61e`
+In this case contract has an owner which could be considered as potential security issue because contract owner could update the impl
+and for example send funds to himself. To prevent it Timelock was added as the contract owner with 48h timelock period before the proxy can be updated.
+This should give users enough time to notice and stop using it.
 
-local anvil accounts:
-address:
-0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-pk:
-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+Another option could be to add intermediary contract that is not upgradable and which only calls `Swapper.swapEtherToToken` and performs the output token balance check.
+Than timelock would not be needed as primary security issue when contract is not making correct swaps would be guarded by immutable contract serving as a facade.
+This would add another layer of indirection but when combined with additional factory contract could remove the need for timelock and proxy, but would involve
+more development and testing.
 
-```
-forge script script/Counter.s.sol:CounterScript --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast  -vvv
-```
+2. Performance. 
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+* How much gas will the swapEtherToToken execution and the deployment take?
 
-### Test
+Deployment has extra cost of deploying timelock contract and proxy in addition to Swapper contract. Those contracts are light and should 
+not introduce substantial cost increase.
 
-to run test with console output
-```
-forge test -vv
-```
+Execution cost is mainly the wrapping of ether into WETH and cost of external call to dex.
 
-### Run script against the deployed contract
+3. Upgradeability. How can the contract be updated if e.g. the DEX it uses has a critical vulnerability and/or the liquidity gets drained?
+ // TODO: ---
 
-`npx ts-node script/InteractWithContract.ts`
+4.Usability and interoperability.  Are other contracts able to interoperate with it?
 
-### Cast
+* Is the contract usable for EOAs?
 
-```shell
-$ cast <subcommand>
-```
+Yes contract is usable for EOAs either manually using etherscan or with UI written in for eg.: typescript.
 
-### Help
+* Are other contracts able to interoperate with it?
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+Yes other contracts can use it. There are not there are no obstacles do it.
+
+5. Readability and code quality. Are the code and design understandable and error-tolerant? Is the contract easily testable?
+
+* Are the code and design understandable and error-tolerant?
+
+I did my best to make in understandable and error-tolerant adding comments and using OpenZeppelin libraries which are widely used and audited.
+
+* Is the contract easily testable?
+
+To make sure of it I have provided a simple test suite written in forge.

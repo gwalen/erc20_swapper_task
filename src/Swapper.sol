@@ -11,6 +11,15 @@ import { UUPSUpgradeable } from "@openzeppelin-upgradeable/contracts/proxy/utils
 import { OwnableUpgradeable } from "@openzeppelin-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin-upgradeable/contracts/utils/PausableUpgradeable.sol";
 
+/**
+ * @dev Contract that swaps Eth into given token using selected third party Dex.
+ *      Contract is upgradable to allow changing the underlying Dex and introduce new features.
+ *      
+ * @notice There are two management roles in this contract:
+ *   - owner: this role is most significant it allows to upgrade the implementation, 
+ *     To reduce to risk owner is Timelock contract.
+ *   - keeper: this role allows to quickly pause/unpause the contract in case of emergency (like issues with Dex)
+ */
 contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     address public WETH;
     ISwapRouter public uniV3Router;
@@ -29,7 +38,6 @@ contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, Pausable
     }
 
     function initialize(address _owner, address _keeper, address _uniV3Router, address _WETH) external initializer {
-        // Init inherited contract
         __UUPSUpgradeable_init();
         __Ownable_init(_owner);
         __Pausable_init();
@@ -41,6 +49,13 @@ contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, Pausable
     // Makes sure only the owner can upgrade, called from upgradeTo(..)
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
+    /**
+     * @dev Swaps the `msg.value` Ether to at least `minAmount` of tokens in `address`, or reverts
+     * When emergency contract can we paused and this method is disabled.
+     * 
+     * @param token - token to swap to
+     * @param minAmount - minimum amount of tokens to receive
+     */
     function swapEtherToToken(
         address token,
         uint minAmount
@@ -63,7 +78,13 @@ contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, Pausable
         return tokenBalanceDiff;
     }
 
-    /// @dev swap with external dex in this case with uniswapV3 
+    /**
+     * @dev Swap with external dex in this case with uniswapV3 
+     * 
+     * @param tokenOut - token to swap to
+     * @param recipient - recipient who will get the swapped token
+     * @param amountIn - amount of WETH to swap
+     */
     function swapWithDex(
         address tokenOut,
         address recipient,
@@ -86,27 +107,28 @@ contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, Pausable
         uniV3Router.exactInputSingle(params);
     }
 
-    /// Keeper can pause/unpause in case of emergency at ant time, owner role is timelock protected 
+    /**
+     * @dev Keeper can pause/unpause in case of emergency at ant time, owner role is timelock protected  
+     */
     function pause() external onlyKeeper {
         _pause();
     }
 
-    /// Keeper can pause/unpause in case of emergency at ant time, owner role is timelock protected 
+    /**
+     * @dev Keeper can pause/unpause in case of emergency at ant time, owner role is timelock protected  
+     */ 
     function unpause() external onlyKeeper {
         _unpause();
     }
 
-    // TODO: add rescue function to retrieve any eth or ERC tokens send to contract accidentally (only admin can do it)
-    // TODO: add comments in the Solidity style
     // TODO: deploy on Sepolia testnet
-    // TODO: remove console2 and unused imports
     // TODO: add comment or add class to check reentracy guard - but this contract does not store any values 
     //       and only case when it could be attacked in sending eth to with deposit() - but this is WETH9 contract, rather wont get hacked
     //       also if entered agin if external swap gets hacked, nothing would happen
 
     /**
-    * @notice  Rescue eth in case someone sent it accidentally
-    */
+     * @dev Rescue eth in case someone sent it accidentally
+     */
     function rescueEth() external onlyOwner {
         (bool sent, ) = msg.sender.call{value: address(this).balance}("");
         require(sent, "Failed to send Native token");
