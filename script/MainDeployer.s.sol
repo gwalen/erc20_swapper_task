@@ -4,9 +4,10 @@ pragma solidity ^0.8.20;
 import {Script, console2} from "forge-std/Script.sol";
 import { Test } from "forge-std/Test.sol";
 import "./deployer/SwapperDeployer.s.sol";
+import "./deployer/TimelockDeployer.s.sol";
 import "../src/Swapper.sol";
 
-contract MainDeployer is Script, Test, SwapperDeployer {
+contract MainDeployer is Script, Test, SwapperDeployer, TimelockDeployer {
 
     // SwapperDeployer swapperDeployer;
     address owner;
@@ -23,8 +24,10 @@ contract MainDeployer is Script, Test, SwapperDeployer {
         setUp();
 
         vm.startBroadcast();
+        deployTimelock(owner);
+
         deployImplementation();
-        deployProxy(owner, uniV3Router, wEth);
+        deployProxy(address(timelock), owner, uniV3Router, wEth);
         
         vm.stopBroadcast();
 
@@ -36,6 +39,7 @@ contract MainDeployer is Script, Test, SwapperDeployer {
     function verify() internal {
         Swapper swapper = Swapper(swapperProxy);
         assertEq(swapper.owner(), owner, "wrong owner");
+        assertEq(swapper.keeper(), owner, "wrong keeper");
         assertEq(address(swapper.uniV3Router()), uniV3Router, "wrong uniV3Router");
         assertEq(swapper.WETH(), wEth, "wrong WETH");
     }

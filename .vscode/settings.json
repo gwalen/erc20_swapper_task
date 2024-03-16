@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "IERC",
-        "struct"
+        "struct",
+        "Timelock"
     ]
 }

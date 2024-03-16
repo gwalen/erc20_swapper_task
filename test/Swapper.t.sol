@@ -7,6 +7,7 @@ import { Erc20Swapper } from "../src/interface/Erc20Swapper.sol";
 
 import { SwapperDeployer } from "../script/deployer/SwapperDeployer.s.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { PausableUpgradeable } from "@openzeppelin-upgradeable/contracts/utils/PausableUpgradeable.sol";
 
 
 contract SwapperTest is Test, SwapperDeployer {
@@ -18,6 +19,7 @@ contract SwapperTest is Test, SwapperDeployer {
     uint256 USDC_DECIMALS_MUL = 10 ** 6;
 
     address OWNER = makeAddr("OWNER");
+    address KEEPER = makeAddr("KEEPER");
     address ALICE = makeAddr("ALICE");
 
     // TODO: remove
@@ -28,7 +30,7 @@ contract SwapperTest is Test, SwapperDeployer {
 
         _vm.startPrank(OWNER);
         deployImplementation();
-        deployProxy(OWNER, UNIV3_ROUTER_MAINNET, WETH9_MAINNET);
+        deployProxy(OWNER, KEEPER, UNIV3_ROUTER_MAINNET, WETH9_MAINNET);
         _vm.stopPrank();
     }
 
@@ -61,6 +63,21 @@ contract SwapperTest is Test, SwapperDeployer {
         _vm.stopPrank();
     }
 
+    function testSwapWhenPaused() public {
+        _vm.deal(ALICE, 2 ether);
+        uint256 amountOutMin = 1_000 * USDC_DECIMALS_MUL;
+
+        _vm.prank(KEEPER);
+        swapperProxy.pause();
+
+        _vm.startPrank(ALICE);
+        
+        _vm.expectRevert(abi.encodeWithSelector(PausableUpgradeable.EnforcedPause.selector));
+        swapperProxy.swapEtherToToken{value: 1 ether}(USDC_MAINNET, amountOutMin);
+
+        _vm.stopPrank();
+    }
+
     function testErrorWithZeroEthInput() public {
         _vm.startPrank(ALICE);
         _vm.expectRevert(abi.encodeWithSelector(Erc20Swapper.EtherInputZero.selector));
@@ -75,5 +92,23 @@ contract SwapperTest is Test, SwapperDeployer {
         swapperProxy.swapEtherToToken{value: 1 ether}(USDC_MAINNET, 1_000_000 * USDC_DECIMALS_MUL);
         _vm.stopPrank();
     }
+
+    function testOnlyKeeperCanPause() public {
+        _vm.startPrank(ALICE);
+        _vm.expectRevert(abi.encodeWithSelector(Erc20Swapper.OnlyKeeperCanAccess.selector));
+        swapperProxy.pause();
+        _vm.stopPrank();
+    }
+
+    function testOnlyKeeperCanUnpause() public {
+        _vm.prank(KEEPER);
+        swapperProxy.pause();
+
+        _vm.startPrank(ALICE);
+        _vm.expectRevert(abi.encodeWithSelector(Erc20Swapper.OnlyKeeperCanAccess.selector));
+        swapperProxy.unpause();
+        _vm.stopPrank();
+    }
+
 
 }

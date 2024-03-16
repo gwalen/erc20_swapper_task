@@ -5,6 +5,7 @@ interface Erc20Swapper {
 
     error EtherInputZero();
     error AmountOutTooSmall();
+    error OnlyKeeperCanAccess();
 
     event Swapped(address token, address user, uint256 amountIn, uint256 amountOut);
 

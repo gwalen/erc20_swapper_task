@@ -9,25 +9,35 @@ import "./interface/IWETH9.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { UUPSUpgradeable } from "@openzeppelin-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import { PausableUpgradeable } from "@openzeppelin-upgradeable/contracts/utils/PausableUpgradeable.sol";
 
 import { console2 } from "forge-std/Test.sol";
 
-contract Swapper is Erc20Swapper, UUPSUpgradeable, OwnableUpgradeable {
+contract Swapper is Erc20Swapper, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     address public WETH;
-
     ISwapRouter public uniV3Router;
+    address public keeper;
+
+    modifier onlyKeeper() {
+        if (msg.sender != keeper) {
+            revert OnlyKeeperCanAccess();
+        }
+        _;
+    }
 
     // Disable initializing on implementation contract
     constructor() {
         _disableInitializers();
     }
 
-    function initialize(address _owner, address _uniV3Router, address _WETH) external initializer {
+    function initialize(address _owner, address _keeper, address _uniV3Router, address _WETH) external initializer {
         // Init inherited contract
         __UUPSUpgradeable_init();
         __Ownable_init(_owner);
+        __Pausable_init();
         uniV3Router = ISwapRouter(_uniV3Router);
         WETH = _WETH;
+        keeper = _keeper;
     }
 
     // Makes sure only the owner can upgrade, called from upgradeTo(..)
@@ -36,7 +46,7 @@ contract Swapper is Erc20Swapper, UUPSUpgradeable, OwnableUpgradeable {
     function swapEtherToToken(
         address token,
         uint minAmount
-    ) external payable override returns (uint) {
+    ) external payable override whenNotPaused returns(uint) {
         if (msg.value == 0) {
             revert EtherInputZero();
         }
@@ -84,6 +94,16 @@ contract Swapper is Erc20Swapper, UUPSUpgradeable, OwnableUpgradeable {
 
         uint amountOut = uniV3Router.exactInputSingle(params);
         console2.log("Dex result: amountOut: ", amountOut);
+    }
+
+    /// Keeper can pause/unpause in case of emergency at ant time, owner role is timelock protected 
+    function pause() external onlyKeeper {
+        _pause();
+    }
+
+    /// Keeper can pause/unpause in case of emergency at ant time, owner role is timelock protected 
+    function unpause() external onlyKeeper {
+        _unpause();
     }
 
     // TODO: add rescue function to retrieve any eth or ERC tokens send to contract accidentally (only admin can do it)
