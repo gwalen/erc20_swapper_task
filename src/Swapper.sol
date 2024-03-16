@@ -12,8 +12,7 @@ import { OwnableUpgradeable } from "@openzeppelin-upgradeable/contracts/access/O
 
 import { console2 } from "forge-std/Test.sol";
 
-//TODO: UUPS proxy, change Ownable to OwnableUpgradable
-contract Swapper is ERC20Swapper, UUPSUpgradeable, OwnableUpgradeable {
+contract Swapper is Erc20Swapper, UUPSUpgradeable, OwnableUpgradeable {
     address public WETH;
 
     ISwapRouter public uniV3Router;
@@ -46,7 +45,6 @@ contract Swapper is ERC20Swapper, UUPSUpgradeable, OwnableUpgradeable {
         console2.log("Eth this: ", address(this).balance);
         // wrap Eth to Weth, now contract was msg.value amount of WETH tokens
         IWETH9(WETH).deposit{value: msg.value}();
-        // IWETH9(WETH).transfer(msg.sender, msg.value);
         console2.log("Eth this:2 ", address(this).balance);
 
         uint tokenBalanceBefore = IERC20(token).balanceOf(msg.sender);
@@ -59,6 +57,7 @@ contract Swapper is ERC20Swapper, UUPSUpgradeable, OwnableUpgradeable {
             revert AmountOutTooSmall();
         }
         
+        emit Swapped(token, msg.sender, msg.value, tokenBalanceDiff);
         return tokenBalanceDiff;
     }
 
@@ -91,4 +90,8 @@ contract Swapper is ERC20Swapper, UUPSUpgradeable, OwnableUpgradeable {
     // TODO: add comments in the Solidity style
     // TODO: deploy on Sepolia testnet
     // TODO: remove console2 and unused imports
+    // TODO: add comment or add class to check reentracy guard - but this contract does not store any values 
+    //       and only case when it could be attacked in sending eth to with deposit() - but this is WETH9 contract, rather wont get hacked
+    //       also if entered agin if external swap gets hacked, nothing would happen
+    // TODO: rename Erc20Swapper to IErc20Swapper for consistency
 }

@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.20;
 
-interface ERC20Swapper {
+interface Erc20Swapper {
 
     error EtherInputZero();
     error AmountOutTooSmall();
+
+    event Swapped(address token, address user, uint256 amountIn, uint256 amountOut);
 
     /// @dev swaps the `msg.value` Ether to at least `minAmount` of tokens in `address`, or reverts
     /// @param token The address of ERC-20 token to swap
