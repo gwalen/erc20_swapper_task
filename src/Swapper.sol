@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.20;
 
-import "./interface/Erc20Swapper.sol";
+import "./interface/IErc20Swapper.sol";
 import "./interface/ISwapRouter.sol";
 import "./interface/IWETH9.sol";
 
@@ -11,9 +11,7 @@ import { UUPSUpgradeable } from "@openzeppelin-upgradeable/contracts/proxy/utils
 import { OwnableUpgradeable } from "@openzeppelin-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin-upgradeable/contracts/utils/PausableUpgradeable.sol";
 
-import { console2 } from "forge-std/Test.sol";
-
-contract Swapper is Erc20Swapper, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
+contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     address public WETH;
     ISwapRouter public uniV3Router;
     address public keeper;
@@ -50,18 +48,12 @@ contract Swapper is Erc20Swapper, UUPSUpgradeable, OwnableUpgradeable, PausableU
         if (msg.value == 0) {
             revert EtherInputZero();
         }
-        console2.log("token %s, minAmount: %s", token, minAmount);
-        console2.log("msg.value: ", msg.value);
-        console2.log("Eth this: ", address(this).balance);
         // wrap Eth to Weth, now contract was msg.value amount of WETH tokens
         IWETH9(WETH).deposit{value: msg.value}();
-        console2.log("Eth this:2 ", address(this).balance);
 
         uint tokenBalanceBefore = IERC20(token).balanceOf(msg.sender);
         swapWithDex(token, msg.sender, msg.value);
         uint tokenBalanceDiff = IERC20(token).balanceOf(msg.sender) - tokenBalanceBefore;
-
-        console2.log("tokenBalanceDiff: ", tokenBalanceDiff);
 
         if (tokenBalanceDiff < minAmount) {
             revert AmountOutTooSmall();
@@ -84,16 +76,14 @@ contract Swapper is Erc20Swapper, UUPSUpgradeable, OwnableUpgradeable, PausableU
             .ExactInputSingleParams({
                 tokenIn: WETH,
                 tokenOut: tokenOut,
-                fee: 3000,  // 0.3% - standard uniswap fee
+                fee: 3000,  // 0.3% - standard uniswap fee, this could be a parameter if needed
                 recipient: recipient,
                 deadline: block.timestamp,
                 amountIn: amountIn,
                 amountOutMinimum: 0,  // we check this value on our own, and want to rely on own errors
                 sqrtPriceLimitX96: 0
             });
-
-        uint amountOut = uniV3Router.exactInputSingle(params);
-        console2.log("Dex result: amountOut: ", amountOut);
+        uniV3Router.exactInputSingle(params);
     }
 
     /// Keeper can pause/unpause in case of emergency at ant time, owner role is timelock protected 
@@ -113,5 +103,12 @@ contract Swapper is Erc20Swapper, UUPSUpgradeable, OwnableUpgradeable, PausableU
     // TODO: add comment or add class to check reentracy guard - but this contract does not store any values 
     //       and only case when it could be attacked in sending eth to with deposit() - but this is WETH9 contract, rather wont get hacked
     //       also if entered agin if external swap gets hacked, nothing would happen
-    // TODO: rename Erc20Swapper to IErc20Swapper for consistency
+
+    /**
+    * @notice  Rescue eth in case someone sent it accidentally
+    */
+    function rescueEth() external onlyOwner {
+        (bool sent, ) = msg.sender.call{value: address(this).balance}("");
+        require(sent, "Failed to send Native token");
+    }
 }

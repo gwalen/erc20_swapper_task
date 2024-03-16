@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.20;
 
-interface Erc20Swapper {
+interface IErc20Swapper {
 
     error EtherInputZero();
     error AmountOutTooSmall();
