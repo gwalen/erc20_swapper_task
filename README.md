@@ -4,15 +4,15 @@
 
 Test are written using forge. To run please execute this command with your rpc url 
 ```
-forge test --fork-url <rpc url> -vv
+forge test --fork-url <rpc_url> -vv
 
 eg.:
-forge test --fork-url https://mainnet.infura.io/v3/<your infura id here> -vv
+forge test --fork-url https://mainnet.infura.io/v3/<your_infura_key> -vv
 ```
 
 ## How to deploy
 
-First you need to setup .env variables 
+First you need to setup `.env` variables 
 ```
 RPC_URL=
 UNI_V3_ROUTER=

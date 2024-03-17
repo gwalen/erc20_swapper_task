@@ -121,8 +121,6 @@ contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, Pausable
         _unpause();
     }
 
-    // TODO: 4. publish to github and send
-
     /**
      * @dev Rescue eth in case someone sent it accidentally
      */
