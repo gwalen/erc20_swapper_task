@@ -121,10 +121,8 @@ contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, Pausable
         _unpause();
     }
 
-    // TODO: deploy on Sepolia testnet
-    // TODO: add comment or add class to check reentracy guard - but this contract does not store any values 
-    //       and only case when it could be attacked in sending eth to with deposit() - but this is WETH9 contract, rather wont get hacked
-    //       also if entered agin if external swap gets hacked, nothing would happen
+    // TODO: 2. finish readme and check grammar with chatgpt
+    // TODO: 4. publish to github and send
 
     /**
      * @dev Rescue eth in case someone sent it accidentally
