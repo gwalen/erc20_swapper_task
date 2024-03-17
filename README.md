@@ -44,15 +44,15 @@ You can check it here:
 
 ## Design discussion
 
-Here is a short description how each of evaluation points was met but this solution:
+Here is a short description of how each of the evaluation points was met by this solution:
 
-#### 1. Safety and trust minimization. Are user's assets kept safe during the exchange transaction? Is the exchange rate fair and correct? Does the contract have an owner?
+#### 1. Safety and trust minimization. Are the user's assets kept safe during the exchange transaction? Is the exchange rate fair and correct? Does the contract have an owner?
 
-* Are user's assets kept safe during the exchange transaction?
+* Are the user's assets kept safe during the exchange transaction?
 
-Assets are safe during the whole transaction (including exchange interaction with external exchange) thanks to check after the call to external swap that 
-ensures if correct amount of output tokens is returned (in `Swapper.sol`):
-```
+Assets are safe during the whole transaction (including the exchange interaction with an external exchange) thanks to a check after the call to the external swap that 
+ensures the correct amount of output tokens is returned (in `Swapper.sol`):
+```markdown
 uint tokenBalanceBefore = IERC20(token).balanceOf(msg.sender);
 swapWithDex(token, msg.sender, msg.value);
 uint tokenBalanceDiff = IERC20(token).balanceOf(msg.sender) - tokenBalanceBefore;
@@ -61,60 +61,60 @@ if (tokenBalanceDiff < minAmount) {
     revert AmountOutTooSmall();
 }
 ```
-If there is any error transaction reverts and user assets are untouched.
+If there is an error, the transaction reverts and the user's assets are untouched.
 
-In this case there is not danger of reentrancy attack but if contract would grow with new functionalities 
-it could be necessary to add special checks. Reentracy guards could be added using ReentrancyGuard impl from OpenZeppelin libs.
+In this case, there is no danger of a reentrancy attack, but if the contract were to grow with new functionalities, 
+it could become necessary to add special checks. Reentrancy guards could be added using the ReentrancyGuard impl from the OpenZeppelin libraries.
 
 * Is the exchange rate fair and correct?
 
-Parameter `minAmount` of `swapEtherToToken` function makes sure of that. This parameter is set by user and includes max slippage
-user can handle. If exchange would return smaller amount than expected the method will revert.
+The parameter `minAmount` of the `swapEtherToToken` function ensures fairness. This parameter is set by the user and includes the maximum slippage
+the user can handle. If the exchange were to return a smaller amount than expected, the method would revert.
 
 * Does the contract have an owner?
 
-In this case contract has an owner which could be considered as potential security issue because contract owner could update the impl
-and for example send funds to himself. To prevent it Timelock was added as the contract owner with 48h timelock period before the proxy can be updated.
+In this case, the contract has an owner, which could be considered a potential security issue because the contract owner could update the implementation
+and, for example, send funds to themselves. To prevent this, a Timelock was added as the contract owner with a 48-hour timelock period before the proxy can be updated.
 This should give users enough time to notice and stop using it.
 
-To make contract even more secure the Timelock executor could be set to Multisig eg.: 3/5 so prevent just one EOA from being able to perform update.
+To make the contract even more secure, the Timelock executor could be set to a Multisig, e.g., 3/5 to prevent just one EOA from being able to perform an update.
 
-Another option could be to add intermediary contract that is not upgradable and which only calls `Swapper.swapEtherToToken` and performs the output token balance check.
-Than timelock would not be needed as primary security issue when contract is not making correct swaps would be guarded by immutable contract serving as a facade.
-This would add another layer of indirection and with extra gas cost but additional security measures.
+Another option could be to add an intermediary contract that is not upgradable and which only calls `Swapper.swapEtherToToken` and performs the output token balance check.
+Then, a timelock would not be needed as the primary security issue—when the contract is not making correct swaps—would be guarded by an immutable contract serving as a facade.
+This would add another layer of indirection and with extra gas cost, but would offer additional security measures.
 
-#### 2. Performance. 
+#### 2. Performance
 
-* How much gas will the swapEtherToToken execution and the deployment take?
+* How much gas will the `swapEtherToToken` execution and the deployment take?
 
-Deployment has extra cost of deploying timelock contract and proxy in addition to Swapper contract. Those contracts are light and should 
-not introduce substantial cost increase.
+Deployment incurs an extra cost from deploying the Timelock contract and the proxy in addition to the Swapper contract itself. These contracts are lightweight and should 
+not introduce a substantial cost increase.
 
-Execution cost is mainly the wrapping of ether into WETH and cost of external call to dex.
+The execution cost is mainly from wrapping Ether into WETH and the cost of the external call to the DEX.
 
-#### 3. Upgradeability. 
+#### 3. Upgradeability
 
-* How can the contract be updated if e.g. the DEX it uses has a critical vulnerability and/or the liquidity gets drained?
+* How can the contract be updated if, for example, the DEX it uses has a critical vulnerability and/or the liquidity gets drained?
 
-Swapper smart contract implement UUPSProxy pattern. Owner (timelock) can update the implementation if needed.
-Keeper role of Swapper can additional pause the contract if there is major bug and trading must stop immediately.
+The Swapper smart contract implements the UUPS pattern. The owner (Timelock) can update the implementation if necessary.
+Additionally, the Keeper role of Swapper can pause the contract if there is a major bug and trading must stop immediately.
 
-#### 4. Usability and interoperability.  Are other contracts able to interoperate with it?
+#### 4. Usability and interoperability. Are other contracts able to interoperate with it?
 
 * Is the contract usable for EOAs?
 
-Yes contract is usable for EOAs either manually using etherscan or with UI written in for eg.: typescript.
+Yes, the contract is usable for EOAs, either manually using Etherscan or with any client (written with, for example ethers-js).
 
 * Are other contracts able to interoperate with it?
 
-Yes other contracts can use it. There are not there are no obstacles do it.
+Yes, other contracts can use it. There are no obstacles to doing so.
 
 #### 5. Readability and code quality. Are the code and design understandable and error-tolerant? Is the contract easily testable?
 
 * Are the code and design understandable and error-tolerant?
 
-I did my best to make in understandable and error-tolerant adding comments and using OpenZeppelin libraries which are widely used and audited.
+I have done my best to ensure they are understandable and error-tolerant by adding comments and utilizing OpenZeppelin libraries, which are widely used and audited.
 
 * Is the contract easily testable?
 
-To make sure of it I have provided a simple test suite written in forge.
+To ensure testability, I have provided a simple test suite written in Forge.

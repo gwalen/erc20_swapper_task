@@ -121,7 +121,6 @@ contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, Pausable
         _unpause();
     }
 
-    // TODO: 2. finish readme and check grammar with chatgpt
     // TODO: 4. publish to github and send
 
     /**
