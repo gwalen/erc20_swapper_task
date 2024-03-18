@@ -2,7 +2,7 @@
 
 ## How to test
 
-Test are written using forge. To run please execute this command with your rpc url 
+Tests are written using Forge. To run them, please execute the following command with your RPC URL for the Ethereum mainnet:
 ```
 forge test --fork-url <rpc_url> -vv
 
