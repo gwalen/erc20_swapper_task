@@ -12,7 +12,7 @@ forge test --fork-url https://mainnet.infura.io/v3/<your_infura_key> -vv
 
 ## How to deploy
 
-First you need to setup `.env` variables 
+First you need to setup `.env` variables:
 ```
 RPC_URL=
 UNI_V3_ROUTER=
@@ -23,7 +23,7 @@ KEEPER_ADDRESS=
 DEPLOYER_PRIVATE_KEY=
 ```
 
-To deploy run `deploy.sh` script. It will use Forge scripts to deploy Timelock and Swapper(with proxy) contracts and perform initialization.
+To deploy run `deploy.sh` script. It will use Forge scripts to deploy Timelock and Swapper(with proxy) contracts with initialization and verification with Etherscan.
 
 ## Deployed contracts:
 
@@ -31,18 +31,21 @@ Addresses of contracts deployed to Sepolia test-net:
 ```
 | Contract Name          | Contract Address                                 |
 |------------------------|--------------------------------------------------|
-| ERC1967Proxy.sol       | 0xCedaDE86709930cF36608F5daeE2E7cc4A690b06       |
-| Swapper.sol            | 0x724D48e4D0213A66A534A1BB808CF013714e554a       |
-| TimelockController.sol | 0xaC706B78F925F3249960681b95dB50198a6Bc1cE       |
+| ERC1967Proxy.sol       | 0x352e2a9a0914365098646bcE2974D40cA1fD1F19       |
+| Swapper.sol            | 0xEC75D289c33A6532bb92993E4464bBdB5C1b148A       |
+| TimelockController.sol | 0x2DD0dBAc9fd4ED02cDB06Eb2Ecc70A16216E5847       |
 ```
 
-Interaction with contract happens through proxy contract `0xCedaDE86709930cF36608F5daeE2E7cc4A690b06`
+Interaction with contract happens through proxy contract `0x352e2a9a0914365098646bcE2974D40cA1fD1F19`
 
 Contract have been **verified** with forge during deployment and **proxy was linked** to implementation using etherscan.
 You can check it here:
-- https://sepolia.etherscan.io/address/0xcedade86709930cf36608f5daee2e7cc4a690b06#code
+- verified & linked proxy: https://sepolia.etherscan.io/address/0x352e2a9a0914365098646bce2974d40ca1fd1f19
+- example transaction on Sepolia testnet : https://sepolia.etherscan.io/tx/0xb7fa621b18c056df85e0c81085243c84e1e777482c6b46bee79da81becd765c0
 
 ## Design discussion
+
+For testing purpose integration with Uniswap V3 was implemented using [IV3SwapRouter](https://github.com/Uniswap/swap-router-contracts/blob/main/contracts/interfaces/IV3SwapRouter.sol).
 
 Here is a short description of how each of the evaluation points was met by this solution:
 
@@ -103,7 +106,7 @@ Additionally, the Keeper role of Swapper can pause the contract if there is a ma
 
 * Is the contract usable for EOAs?
 
-Yes, the contract is usable for EOAs, either manually using Etherscan or with any client (written with, for example ethers-js).
+Yes, the contract is usable for EOAs, either manually using Etherscan or with any client (using for example ethers-js).
 
 * Are other contracts able to interoperate with it?
 
