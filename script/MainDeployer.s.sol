@@ -39,7 +39,7 @@ contract MainDeployer is Script, Test, SwapperDeployer, TimelockDeployer {
 
     function verify() internal {
         Swapper swapper = Swapper(swapperProxy);
-        assertEq(swapper.owner(), owner, "wrong owner");
+        assertEq(swapper.owner(), address(timelock), "wrong owner");
         assertEq(swapper.keeper(), keeper, "wrong keeper");
         assertEq(address(swapper.uniV3Router()), uniV3Router, "wrong uniV3Router");
         assertEq(swapper.WETH(), wEth, "wrong WETH");

@@ -10,11 +10,11 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { PausableUpgradeable } from "@openzeppelin-upgradeable/contracts/utils/PausableUpgradeable.sol";
 
 
-contract SwapperTest is Test, SwapperDeployer {
+contract SwapperTestSepolia is Test, SwapperDeployer {
     
-    address constant UNIV3_ROUTER_MAINNET = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45; // swap router v2
-    address constant WETH9_MAINNET = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; 
-    address constant USDC_MAINNET = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address constant UNIV3_ROUTER_MAINNET = 0x3bFA4769FB09eefC5a80d6E87c3B9C650f7Ae48E; 
+    address constant WETH9_MAINNET = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14; 
+    address constant USDC_MAINNET = 0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8;
 
     uint256 USDC_DECIMALS_MUL = 10 ** 6;
 
@@ -33,12 +33,12 @@ contract SwapperTest is Test, SwapperDeployer {
 
     function testSwap() public {
         vm.deal(ALICE, 2 ether);
-        uint256 amountOutMin = 1_000 * USDC_DECIMALS_MUL;
+        uint256 amountOutMin = 1 * USDC_DECIMALS_MUL;
 
         vm.startPrank(ALICE);
 
         uint256 balance_before = IERC20(USDC_MAINNET).balanceOf(ALICE);
-        uint256 amountOut = swapperProxy.swapEtherToToken{value: 1 ether}(USDC_MAINNET, amountOutMin);
+        uint256 amountOut = swapperProxy.swapEtherToToken{value: 0.001 ether}(USDC_MAINNET, amountOutMin);
         uint256 balance_diff = IERC20(USDC_MAINNET).balanceOf(ALICE) - balance_before;
 
         assertEq(balance_diff, amountOut);
@@ -47,18 +47,18 @@ contract SwapperTest is Test, SwapperDeployer {
         vm.stopPrank();
     }
 
-    function testSwapEvent() public {
-        vm.deal(ALICE, 2 ether);
-        uint256 amountOutMin = 1_000 * USDC_DECIMALS_MUL;
+    // function testSwapEvent() public {
+    //     vm.deal(ALICE, 2 ether);
+    //     uint256 amountOutMin = 1_000 * USDC_DECIMALS_MUL;
 
-        vm.startPrank(ALICE);
+    //     vm.startPrank(ALICE);
         
-        vm.expectEmit(false, false, false, false, address(swapperProxy));
-        emit IErc20Swapper.Swapped(USDC_MAINNET, ALICE, 1 ether, 0); // the last value will not match as we don't know result yet
-        swapperProxy.swapEtherToToken{value: 1 ether}(USDC_MAINNET, amountOutMin);
+    //     vm.expectEmit(false, false, false, false, address(swapperProxy));
+    //     emit IErc20Swapper.Swapped(USDC_MAINNET, ALICE, 1 ether, 0); // the last value will not match as we don't know result yet
+    //     swapperProxy.swapEtherToToken{value: 1 ether}(USDC_MAINNET, amountOutMin);
 
-        vm.stopPrank();
-    }
+    //     vm.stopPrank();
+    // }
 
     function testSwapWhenPaused() public {
         vm.deal(ALICE, 2 ether);

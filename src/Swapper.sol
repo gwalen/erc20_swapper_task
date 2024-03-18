@@ -2,10 +2,9 @@
 pragma solidity ^0.8.20;
 
 import "./interface/IErc20Swapper.sol";
-import "./interface/ISwapRouter.sol";
+import "./interface/IV3SwapRouter.sol";
 import "./interface/IWETH9.sol";
 
-// import "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { UUPSUpgradeable } from "@openzeppelin-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin-upgradeable/contracts/access/OwnableUpgradeable.sol";
@@ -17,12 +16,12 @@ import { PausableUpgradeable } from "@openzeppelin-upgradeable/contracts/utils/P
  *      
  * @notice There are two management roles in this contract:
  *   - owner: this role is most significant it allows to upgrade the implementation, 
- *     To reduce to risk owner is Timelock contract.
+ *     To reduce to risk owner is set to Timelock contract.
  *   - keeper: this role allows to quickly pause/unpause the contract in case of emergency (like issues with Dex)
  */
 contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     address public WETH;
-    ISwapRouter public uniV3Router;
+    IV3SwapRouter public uniV3Router;
     address public keeper;
 
     modifier onlyKeeper() {
@@ -41,7 +40,7 @@ contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, Pausable
         __UUPSUpgradeable_init();
         __Ownable_init(_owner);
         __Pausable_init();
-        uniV3Router = ISwapRouter(_uniV3Router);
+        uniV3Router = IV3SwapRouter(_uniV3Router);
         WETH = _WETH;
         keeper = _keeper;
     }
@@ -63,7 +62,7 @@ contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, Pausable
         if (msg.value == 0) {
             revert EtherInputZero();
         }
-        // wrap Eth to Weth, now contract was msg.value amount of WETH tokens
+        // wrap Eth to Weth, now contract has msg.value amount of WETH tokens
         IWETH9(WETH).deposit{value: msg.value}();
 
         uint tokenBalanceBefore = IERC20(token).balanceOf(msg.sender);
@@ -93,17 +92,17 @@ contract Swapper is IErc20Swapper, UUPSUpgradeable, OwnableUpgradeable, Pausable
         // approve router to use our weth in the swap
         IERC20(WETH).approve(address(uniV3Router), amountIn);
 
-        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
+        IV3SwapRouter.ExactInputSingleParams memory params = IV3SwapRouter
             .ExactInputSingleParams({
                 tokenIn: WETH,
                 tokenOut: tokenOut,
                 fee: 3000,  // 0.3% - standard uniswap fee, this could be a parameter if needed
                 recipient: recipient,
-                deadline: block.timestamp,
                 amountIn: amountIn,
-                amountOutMinimum: 0,  // we check this value on our own, and want to rely on own errors
+                amountOutMinimum: 0,  // we check this value on our own, and want to rely on our errors
                 sqrtPriceLimitX96: 0
             });
+
         uniV3Router.exactInputSingle(params);
     }
 
